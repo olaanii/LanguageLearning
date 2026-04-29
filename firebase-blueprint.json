@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "avatar": { "type": "string" },
+        "score": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["email", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Public and private user data (simplified for this app)"
+    },
+    "/lessons/{lessonId}": {
+      "schema": "schema representing lesson",
+      "description": "Available lessons"
+    },
+    "/quizzes/{quizId}": {
+      "schema": "schema representing quiz",
+      "description": "Available quizzes"
+    },
+    "/flashcards/{flashcardId}": {
+      "schema": "schema representing flashcards",
+      "description": "Available flashcards"
+    }
+  }
+}

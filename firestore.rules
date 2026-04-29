@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return request.auth.uid == uid; }
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // User Entity
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'updatedAt']) 
+        && data.email is string && data.email.size() <= 200
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && data.get('name', '') is string
+        && data.get('avatar', '') is string
+        && data.get('score', 0) is number
+        && data.get('level', 1) is number
+        && data.get('progress', 0) is number;
+    }
+
+    match /lessons/{id} {
+      allow read: if isSignedIn() && resource.data.isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow write: if isSignedIn(); // For seeding purposes initially
+    }
+    match /flashcards/{id} {
+      allow read: if isSignedIn() && resource.data.isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow write: if isSignedIn();
+    }
+    match /quizzes/{id} {
+      allow read: if isSignedIn() && resource.data.isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow write: if isSignedIn();
+    }
+    
+    match /users/{userId} {
+      allow read: if isSignedIn() && isOwner(userId) && isValidId(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      
+      allow update: if isSignedIn() && isOwner(userId) && isValidId(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatar', 'score', 'level', 'progress', 'updatedAt'])
+        && incoming().updatedAt == request.time
+        && incoming().get('name', existing().get('name', '')) is string
+        && incoming().get('avatar', existing().get('avatar', '')) is string
+        && incoming().get('score', existing().get('score', 0)) is number
+        && incoming().get('level', existing().get('level', 1)) is number
+        && incoming().get('progress', existing().get('progress', 0)) is number
+      );
+      allow list: if isSignedIn() && isOwner(userId); // Explicitly required bounds for list
+    }
+  }
+}
